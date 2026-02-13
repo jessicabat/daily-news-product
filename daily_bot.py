@@ -2,6 +2,7 @@ import feedparser
 import json
 import os
 import nltk
+from datetime import datetime, timezone
 from newspaper import Article
 from groq import Groq
 
@@ -21,29 +22,41 @@ except LookupError:
 
 TOPICS = {
     "Tech": [
-        "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
         "https://www.wired.com/feed/rss",
+        "https://techcrunch.com/feed/",
+        "https://www.theverge.com/rss/index.xml",
+        "https://hnrss.org/frontpage",
+        "https://feeds.arstechnica.com/arstechnica/technology-lab",
     ],
     "AI": [
-        "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
-        "https://www.wired.com/feed/category/artificial-intelligence/latest/rss",
+        "https://www.wired.com/feed/tag/ai/latest/rss",
+        "https://techcrunch.com/category/artificial-intelligence/feed/",
+        "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
     ],
     "Finance": [
         "https://www.cnbc.com/id/100003114/device/rss/rss.html",
         "https://finance.yahoo.com/news/rssindex",
+        "https://moxie.foxbusiness.com/google-publisher/latest.xml",
+        "https://www.investing.com/rss/news.rss",
+        "https://feeds.marketwatch.com/marketwatch/topstories/",
     ],
     "World News": [
-        "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
         "https://feeds.npr.org/1004/rss.xml",
+        "https://news.google.com/rss/search?q=site:reuters.com&hl=en-US&gl=US&ceid=US:en",
+        "https://www.theguardian.com/world/rss",
+        "https://feeds.bbci.co.uk/news/rss.xml",
     ],
     "Business": [
-        "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml",
         "https://www.cnbc.com/id/10001147/device/rss/rss.html",
+        "https://feeds.washingtonpost.com/rss/business",
+        "https://moxie.foxbusiness.com/google-publisher/latest.xml",
+        "https://feeds.bbci.co.uk/news/business/rss.xml",
     ],
     "Stock Market": [
         "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^DJI,^IXIC&region=US&lang=en-US",
         "https://www.cnbc.com/id/15839135/device/rss/rss.html",
         "https://feeds.marketwatch.com/marketwatch/topstories/",
+        "https://www.investing.com/rss/news.rss",
     ],
     "Crypto": [
         "https://cointelegraph.com/rss",
@@ -177,6 +190,11 @@ def main():
                 for art in articles
             ],
         }
+
+    # Add metadata with generation timestamp
+    daily_data["_meta"] = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
 
     # Save to JSON for the frontend to read
     output_path = "daily_data.json"

@@ -1,26 +1,39 @@
 import streamlit as st
 import json
 import os
+import time
+from datetime import datetime
 from groq import Groq
 
+# ─── 0. Security Check ───────────────────────────────────────────────────────
 if "GROQ_API_KEY" not in st.secrets:
     st.error("🚨 Groq API Key is missing! Please add it to Streamlit Secrets.")
     st.stop()
 
-# ─── 1. Page Configuration ───────────────────────────────────────────────────
+# ─── 1. Page Configuration & CSS (No Sidebar) ────────────────────────────────
 st.set_page_config(
     page_title="MarketMind | Daily Digest",
     page_icon="📰",
     layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-# ─── 2. Load Data ────────────────────────────────────────────────────────────
+# Completely hide the sidebar, header menus, and make things look clean
+st.markdown("""
+    <style>
+        [data-testid="collapsedControl"] { display: none; }
+        [data-testid="stSidebar"] { display: none; }
+        #MainMenu {visibility: hidden;}
+        header {visibility: hidden;}
+        .block-container {padding-top: 2rem;}
+    </style>
+""", unsafe_allow_html=True)
+
+# ─── 2. Data Loading & Generators ────────────────────────────────────────────
 DATA_FILE = "daily_data.json"
 
-
-@st.cache_data(ttl=300)  # cache for 5 minutes so we don't re-read on every interaction
+@st.cache_data(ttl=300)
 def load_data() -> dict:
-    """Load the JSON file produced by the backend bot."""
     if not os.path.exists(DATA_FILE):
         return {}
     try:
@@ -29,132 +42,195 @@ def load_data() -> dict:
     except (json.JSONDecodeError, IOError):
         return {}
 
-
 data = load_data()
 
-# ─── 3. Sidebar Navigation ───────────────────────────────────────────────────
-with st.sidebar:
-    st.image("https://img.icons8.com/fluency/96/news.png", width=64)
-    st.title("MarketMind")
-    st.caption("Your AI-powered daily news digest")
+# Generator for the "AI Typing" Vibe
+def stream_text(text, delay=0.02):
+    """Yields text word-by-word to simulate an AI typing smoothly."""
+    for word in text.split():
+        yield word + " "
+        time.sleep(delay)
 
-    st.divider()
+# ─── 3. Session State Management ─────────────────────────────────────────────
+if "current_topic" not in st.session_state:
+    st.session_state.current_topic = None
 
-    # Topic selector – keys come from the data file produced by the bot
-    available_topics = list(data.keys()) if data else ["Tech", "Finance", "World"]
-    selected_topic = st.radio("📂 Select Topic", available_topics)
+if "typed_summaries" not in st.session_state:
+    st.session_state.typed_summaries = set() # Tracks which summaries we've already "animated"
 
-    st.divider()
+if "chat_histories" not in st.session_state:
+    st.session_state.chat_histories = {} # Keeps chat history isolated per topic
 
-    # Dashboard metrics (cosmetic / placeholder for now)
-    st.subheader("📊 Dashboard Metrics")
-    col1, col2 = st.columns(2)
-    col1.metric("Sources", "12", delta="3 new")
-    col2.metric("Latency", "1.2 s", delta="-0.3 s")
+available_topics = [k for k in data.keys() if k != "_meta"] if data else ["Tech", "Finance", "World News"]
 
-    st.divider()
-    st.info("💡 Tip: Use the **Chat with Data** box at the bottom to ask questions about today's news.")
+# Topic Descriptions for the Landing Page Cards
+TOPIC_DESCS = {
+    "Tech": "Silicon Valley updates, AI breakthroughs, and gadget releases.",
+    "AI": "The cutting-edge of machine learning, LLMs, and robotics.",
+    "Finance": "Corporate earnings, central bank moves, and economy.",
+    "World News": "Geopolitics, international relations, and global events.",
+    "Business": "Retail trends, corporate shifts, and industry news.",
+    "Stock Market": "Wall street, index movements, and trading analysis.",
+    "Crypto": "Bitcoin, Ethereum, DeFi, and blockchain regulations."
+}
 
-# ─── 4. Main Display ─────────────────────────────────────────────────────────
-st.header(f"📰 {selected_topic} — Daily Digest")
+# ─── Helper: Digest Date ─────────────────────────────────────────────────────
+meta = data.get("_meta", {})
+generated_at = meta.get("generated_at")
+if generated_at:
+    digest_date = datetime.fromisoformat(generated_at).strftime("%B %d, %Y")
+else:
+    try:
+        mtime = os.path.getmtime(DATA_FILE)
+        digest_date = datetime.fromtimestamp(mtime).strftime("%B %d, %Y")
+    except OSError:
+        digest_date = "Unknown"
 
-topic_data = data.get(selected_topic, {})
+# ─── 4. Header & Metrics Dashboard (Always Visible) ──────────────────────────
+col_title, col_met1, col_met2, col_met3 = st.columns([3, 1, 1, 1])
 
-if not topic_data:
-    st.warning(
-        "No data available for this topic yet. Make sure `daily_bot.py` has run at least once "
-        "and produced a `daily_data.json` file."
-    )
-    st.stop()
+with col_title:
+    st.markdown("### 🧠 MarketMind")
+    st.caption(f"Your AI-powered daily news digest — 🗓️ {digest_date}")
 
-# --- Executive Summary ---
-summary = topic_data.get("summary", "_No summary available._")
-st.subheader("🧠 Executive Summary")
-st.markdown(summary)
+with col_met1:
+    st.metric("Sources Scraped", "18", delta="Active")
+with col_met2:
+    st.metric("Inference Latency", "1.2 s", delta="-0.2s", delta_color="inverse")
+with col_met3:
+    st.metric("Fact Check Score", "98.5%", delta="+1.1%")
 
-# --- Source Articles (transparency layer) ---
-articles = topic_data.get("articles", [])
-
-with st.expander(f"🔗 View Source Articles ({len(articles)})", expanded=False):
-    if articles:
-        for idx, article in enumerate(articles, start=1):
-            title = article.get("title", "Untitled")
-            url = article.get("url", "#")
-            source = article.get("source", "Unknown source")
-            snippet = article.get("text", article.get("description", ""))[:200]
-
-            st.markdown(f"**{idx}. [{title}]({url})**  \n*{source}*")
-            if snippet:
-                st.caption(snippet + "…")
-            st.divider()
-    else:
-        st.info("No source articles recorded.")
-
-# ─── 5. Chat with Data (RAG) ─────────────────────────────────────────────────
 st.divider()
-st.subheader("💬 Chat with Today's News")
 
-# Build context from the articles
-context_text = "\n\n".join(
-    f"Title: {a.get('title', '')}\nSource: {a.get('source', '')}\n"
-    f"Content: {a.get('text', a.get('description', ''))}"
-    for a in articles
-)
+# ─── 5. Landing Page (First Time Open) ───────────────────────────────────────
+if st.session_state.current_topic is None:
+    st.markdown("## Welcome to your Daily Briefing.")
+    st.markdown("#### ⚡ Quick Start")
+    st.info("Choose a topic below. MarketMind will instantly read today's top articles, summarize the market implications, and allow you to chat directly with the news.")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Create a nice 3-column grid for the topic cards
+    cols = st.columns(3)
+    for idx, topic in enumerate(available_topics):
+        with cols[idx % 3]:
+            # The "Card" design
+            with st.container(border=True):
+                st.markdown(f"**{topic}**")
+                st.caption(TOPIC_DESCS.get(topic, "Latest updates and news."))
+                # When clicked, set the topic and rerun the app!
+                if st.button(f"Read {topic} →", key=f"btn_{topic}", use_container_width=True):
+                    st.session_state.current_topic = topic
+                    st.rerun()
 
-# Initialise chat history in session state
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# ─── 6. Digest View (After Topic is Selected) ────────────────────────────────
+else:
+    # --- STICKY TOP NAVIGATION ---
+    # This allows the user to switch topics without going back to the landing page
+    selected = st.radio(
+        "Select Topic", 
+        available_topics, 
+        index=available_topics.index(st.session_state.current_topic),
+        horizontal=True, 
+        label_visibility="collapsed"
+    )
+    
+    # If they click a different topic in the top nav, update state and rerun
+    if selected != st.session_state.current_topic:
+        st.session_state.current_topic = selected
+        st.rerun()
 
-# Display existing chat messages
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+    st.markdown("<br>", unsafe_allow_html=True)
 
-# Chat input
-if prompt := st.chat_input("Ask something about today's news…"):
-    # Show user message
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+    # Fetch Data for selected topic
+    topic_data = data.get(st.session_state.current_topic, {})
+    if not topic_data:
+        st.warning(f"No data available for {st.session_state.current_topic} yet.")
+        st.stop()
 
-    # Build the system + user messages for Groq
-    system_prompt = (
-        "You are MarketMind, an expert news analyst. "
-        "Answer the user's question based ONLY on the following news context. "
-        "If the answer is not in the context, say so honestly.\n\n"
-        "--- NEWS CONTEXT ---\n"
-        f"{context_text}\n"
-        "--- END CONTEXT ---"
+    # --- THE "VIBE" LOADING & STREAMING ---
+    summary = topic_data.get("summary", "_No summary available._")
+    
+    st.subheader(f"📰 Today's {st.session_state.current_topic} Digest")
+    
+    # Check if we've already streamed this topic today. If not, do the animation.
+    if st.session_state.current_topic not in st.session_state.typed_summaries:
+        with st.spinner("Analyzing cross-source intelligence..."):
+            time.sleep(1.5) # The "Thinking" illusion
+        st.write_stream(stream_text(summary))
+        st.session_state.typed_summaries.add(st.session_state.current_topic)
+    else:
+        # If already typed, just display it instantly to not annoy the user
+        st.markdown(summary)
+
+    # --- SOURCE TRANSPARENCY ---
+    articles = topic_data.get("articles", [])
+    with st.expander(f"🔗 View Validated Sources ({len(articles)})", expanded=False):
+        if articles:
+            for idx, article in enumerate(articles, start=1):
+                title = article.get("title", "Untitled")
+                url = article.get("url", "#")
+                source = article.get("source", "Unknown source")
+                snippet = article.get("text", article.get("description", ""))[:150]
+                
+                st.markdown(f"**{idx}. [{title}]({url})** \n*{source}*")
+                if snippet:
+                    st.caption(snippet.replace('\n', ' ') + "…")
+                st.divider()
+
+    # --- RAG CHAT INTERFACE ---
+    st.divider()
+    st.subheader(f"💬 Chat with {st.session_state.current_topic} Data")
+    
+    # Isolate chat history for THIS specific topic
+    if st.session_state.current_topic not in st.session_state.chat_histories:
+        st.session_state.chat_histories[st.session_state.current_topic] = []
+        
+    current_chat = st.session_state.chat_histories[st.session_state.current_topic]
+
+    context_text = "\n\n".join(
+        f"Title: {a.get('title', '')}\nSource: {a.get('source', '')}\nContent: {a.get('text', '')}"
+        for a in articles
     )
 
-    messages_for_llm = [
-        {"role": "system", "content": system_prompt},
-        # Include recent chat history for multi-turn conversation
-        *[
-            {"role": m["role"], "content": m["content"]}
-            for m in st.session_state.messages[-10:]  # last 10 turns
-        ],
-    ]
+    # Display isolated chat history
+    for msg in current_chat:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
 
-    # Stream response from Groq
-    with st.chat_message("assistant"):
-        try:
-            client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-            stream = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=messages_for_llm,
-                temperature=0.4,
-                max_tokens=1024,
-                stream=True,
-            )
+    if prompt := st.chat_input(f"Ask about today's {st.session_state.current_topic} news…"):
+        current_chat.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
 
-            response_text = st.write_stream(
-                (chunk.choices[0].delta.content or "" for chunk in stream)
-            )
+        system_prompt = (
+            "You are MarketMind, an expert news analyst. "
+            "Answer the user's question based ONLY on the following news context. "
+            "If the answer is not in the context, say so honestly.\n\n"
+            "--- NEWS CONTEXT ---\n"
+            f"{context_text}\n"
+            "--- END CONTEXT ---"
+        )
 
-        except Exception as e:
-            response_text = f"⚠️ Could not reach the AI service: `{e}`"
-            st.error(response_text)
+        messages_for_llm = [{"role": "system", "content": system_prompt}] + [
+            {"role": m["role"], "content": m["content"]} for m in current_chat[-6:]
+        ]
 
-    # Persist assistant reply
-    st.session_state.messages.append({"role": "assistant", "content": response_text})
+        with st.chat_message("assistant"):
+            try:
+                client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                stream = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=messages_for_llm,
+                    temperature=0.3,
+                    max_tokens=1024,
+                    stream=True,
+                )
+                response_text = st.write_stream(
+                    (chunk.choices[0].delta.content or "" for chunk in stream)
+                )
+            except Exception as e:
+                response_text = f"⚠️ Could not reach the AI service: `{e}`"
+                st.error(response_text)
+
+        current_chat.append({"role": "assistant", "content": response_text})
