@@ -26,6 +26,21 @@ st.markdown("""
         #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
         .block-container {padding-top: 2rem;}
+        /* Equal-height topic cards */
+        div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] {
+            height: 100%;
+        }
+        div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] > div[data-testid="stVerticalBlockBorderWrapper"] > div > div[data-testid="stVerticalBlock"] {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -46,10 +61,15 @@ data = load_data()
 
 # Generator for the "AI Typing" Vibe
 def stream_text(text, delay=0.02):
-    """Yields text word-by-word to simulate an AI typing smoothly."""
-    for word in text.split():
-        yield word + " "
-        time.sleep(delay)
+    """Yields text word-by-word to simulate an AI typing smoothly, preserving newlines."""
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        words = line.split()
+        for word in words:
+            yield word + " "
+            time.sleep(delay)
+        if i < len(lines) - 1:
+            yield "\n"
 
 # ─── 3. Session State Management ─────────────────────────────────────────────
 if "current_topic" not in st.session_state:
@@ -94,7 +114,7 @@ with col_title:
     st.caption(f"Your AI-powered daily news digest — 🗓️ {digest_date}")
 
 with col_met1:
-    st.metric("Sources Scraped", "18", delta="Active")
+    st.metric("Unique Sources", "18", delta="Active")
 with col_met2:
     st.metric("Inference Latency", "1.2 s", delta="-0.2s", delta_color="inverse")
 with col_met3:
@@ -157,7 +177,13 @@ else:
     if st.session_state.current_topic not in st.session_state.typed_summaries:
         with st.spinner("Analyzing cross-source intelligence..."):
             time.sleep(1.5) # The "Thinking" illusion
-        st.write_stream(stream_text(summary))
+        
+        # Split summary into markdown sections and stream each one
+        sections = summary.split("\n## ")
+        for i, section in enumerate(sections):
+            section_text = section if i == 0 else f"## {section}"
+            st.write_stream(stream_text(section_text))
+        
         st.session_state.typed_summaries.add(st.session_state.current_topic)
     else:
         # If already typed, just display it instantly to not annoy the user
