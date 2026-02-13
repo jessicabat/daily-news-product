@@ -21,7 +21,7 @@ jobs:
                   python-version: '3.9'
 
             - name: Install dependencies
-              run: pip install feedparser newspaper3k groq nltk
+              run: pip install feedparser newspaper3k groq nltk lxml[html_clean]
 
             - name: Run Daily Bot
               env:
