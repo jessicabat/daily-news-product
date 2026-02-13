@@ -132,7 +132,7 @@ def generate_summary(topic, articles):
                     "content": prompt,
                 },
             ],
-            model="llama3-8b-8192",
+            model="llama-3.3-70b-versatile",
             temperature=0.5,
             max_tokens=1024,
         )

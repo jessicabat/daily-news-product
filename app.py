@@ -141,7 +141,7 @@ if prompt := st.chat_input("Ask something about today's news…"):
         try:
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             stream = client.chat.completions.create(
-                model="llama-3.1-8b-instant",
+                model="llama-3.3-70b-versatile",
                 messages=messages_for_llm,
                 temperature=0.4,
                 max_tokens=1024,
