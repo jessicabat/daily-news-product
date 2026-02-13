@@ -1,0 +1,37 @@
+name: Daily News Bot
+
+on:
+    schedule:
+        - cron: '0 13 * * *'
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+jobs:
+    run-daily-bot:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v3
+
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: '3.9'
+
+            - name: Install dependencies
+              run: pip install feedparser newspaper3k groq nltk
+
+            - name: Run Daily Bot
+              env:
+                  GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+              run: python daily_bot.py
+
+            - name: Commit and Push
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  git add daily_data.json
+                  git diff --cached --quiet || git commit -m "Update daily_data.json [automated]"
+                  git push

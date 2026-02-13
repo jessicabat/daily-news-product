@@ -1,0 +1,6 @@
+[theme]
+primaryColor = "#00FF94"    # A nice Matrix/Fintech Green
+backgroundColor = "#0E1117" # Dark Background
+secondaryBackgroundColor = "#262730"
+textColor = "#FAFAFA"
+font = "sans serif"
