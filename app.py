@@ -197,7 +197,7 @@ else:
                 title = article.get("title", "Untitled")
                 url = article.get("url", "#")
                 source = article.get("source", "Unknown source")
-                snippet = article.get("text", article.get("description", ""))[:150]
+                snippet = article.get("text", article.get("description", ""))[:400]
                 
                 st.markdown(f"**{idx}. [{title}]({url})** \n*{source}*")
                 if snippet:
