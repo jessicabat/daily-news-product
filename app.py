@@ -41,6 +41,31 @@ st.markdown("""
             flex-direction: column;
             justify-content: space-between;
         }
+        /* Topic nav bar: equal-width rounded rectangle buttons */
+        div.topic-nav-bar > div[data-testid="stHorizontalBlock"] {
+            gap: 0.5rem !important;
+        }
+        div.topic-nav-bar > div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+            flex: 1 1 0 !important;
+            min-width: 0 !important;
+        }
+        div.topic-nav-bar button[kind="secondary"] {
+            border-radius: 12px !important;
+            width: 100% !important;
+            padding: 0.55rem 0.25rem !important;
+            font-weight: 500 !important;
+            border: 2px solid transparent !important;
+            transition: all 0.15s ease !important;
+        }
+        div.topic-nav-bar button[kind="secondary"]:hover {
+            border-color: #4A90D9 !important;
+            color: #4A90D9 !important;
+        }
+        div.topic-nav-bar button.active-topic {
+            background-color: #4A90D9 !important;
+            color: white !important;
+            border-color: #4A90D9 !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -113,10 +138,12 @@ with col_title:
     st.markdown("### 🧠 MarketMind")
     st.caption(f"Your AI-powered daily news digest — 🗓️ {digest_date}")
 
+total_articles = sum(len(v.get("articles", [])) for k, v in data.items() if k != "_meta")
+
 with col_met1:
-    st.metric("Unique Sources", "18", delta="Active")
+    st.metric("Articles Processed Today", str(total_articles), delta="Live")
 with col_met2:
-    st.metric("Inference Latency", "1.2 s", delta="-0.2s", delta_color="inverse")
+    st.metric("Average Inference Latency (TTFT)", "1.2 s")
 with col_met3:
     st.metric("Fact Check Score", "98.5%", delta="+1.1%")
 
@@ -146,19 +173,27 @@ if st.session_state.current_topic is None:
 # ─── 6. Digest View (After Topic is Selected) ────────────────────────────────
 else:
     # --- STICKY TOP NAVIGATION ---
-    # This allows the user to switch topics without going back to the landing page
-    selected = st.radio(
-        "Select Topic", 
-        available_topics, 
-        index=available_topics.index(st.session_state.current_topic),
-        horizontal=True, 
-        label_visibility="collapsed"
-    )
-    
-    # If they click a different topic in the top nav, update state and rerun
-    if selected != st.session_state.current_topic:
-        st.session_state.current_topic = selected
-        st.rerun()
+    # Equal-width rounded rectangle buttons for each topic
+    st.markdown('<div class="topic-nav-bar">', unsafe_allow_html=True)
+    nav_cols = st.columns(len(available_topics))
+    for idx, topic in enumerate(available_topics):
+        with nav_cols[idx]:
+            is_active = (topic == st.session_state.current_topic)
+            if st.button(topic, key=f"nav_{topic}", use_container_width=True, type="secondary"):
+                if not is_active:
+                    st.session_state.current_topic = topic
+                    st.rerun()
+            # Highlight the active button via injected JS/CSS
+            if is_active:
+                st.markdown(
+                    f"""<style>div.topic-nav-bar div[data-testid="stColumn"]:nth-child({idx + 1}) button {{
+                        background-color: #4A90D9 !important;
+                        color: white !important;
+                        border-color: #4A90D9 !important;
+                    }}</style>""",
+                    unsafe_allow_html=True,
+                )
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -252,6 +287,7 @@ else:
                     max_tokens=1024,
                     stream=True,
                 )
+
                 response_text = st.write_stream(
                     (chunk.choices[0].delta.content or "" for chunk in stream)
                 )
