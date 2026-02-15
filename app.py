@@ -61,12 +61,10 @@ st.markdown("""
             border-color: #4A90D9 !important;
             color: #4A90D9 !important;
         }
-        /* Metric cards: rounded rectangle with contrasting background */
-        div.metric-dashboard [data-testid="stMetric"] {
-            background-color: rgba(74, 144, 217, 0.08);
-            border: 1px solid rgba(74, 144, 217, 0.2);
-            border-radius: 12px;
-            padding: 0.75rem 1rem;
+        div.topic-nav-bar button.active-topic {
+            background-color: #4A90D9 !important;
+            color: white !important;
+            border-color: #4A90D9 !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -142,15 +140,12 @@ with col_title:
 
 total_articles = sum(len(v.get("articles", [])) for k, v in data.items() if k != "_meta")
 
-st.markdown('<div class="metric-dashboard">', unsafe_allow_html=True)
-met_cols = st.columns(3)
-with met_cols[0]:
+with col_met1:
     st.metric("Articles Processed Today", str(total_articles), delta="Live")
-with met_cols[1]:
+with col_met2:
     st.metric("Avg. Inference Latency (TTFT)", "1.2 s")
-with met_cols[2]:
+with col_met3:
     st.metric("Fact Check Score", "98.5%", delta="+1.1%")
-st.markdown('</div>', unsafe_allow_html=True)
 
 st.divider()
 
@@ -188,17 +183,14 @@ else:
                 if not is_active:
                     st.session_state.current_topic = topic
                     st.rerun()
-            # Highlight the active button via injected CSS
+            # Highlight the active button via injected JS/CSS
             if is_active:
                 st.markdown(
-                    f"""<style>
-                    div.topic-nav-bar > div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:nth-child({idx + 1}) button[kind="secondary"] {{
+                    f"""<style>div.topic-nav-bar div[data-testid="stColumn"]:nth-child({idx + 1}) button {{
                         background-color: #4A90D9 !important;
                         color: white !important;
                         border-color: #4A90D9 !important;
-                        font-weight: 600 !important;
-                    }}
-                    </style>""",
+                    }}</style>""",
                     unsafe_allow_html=True,
                 )
     st.markdown('</div>', unsafe_allow_html=True)
