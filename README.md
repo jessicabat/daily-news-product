@@ -62,12 +62,12 @@ The bot iterates over **7 topic categories**, each mapped to 3–5 RSS feeds:
 
 | Topic | Sources |
 |-------|---------|
-| **Tech** | Wired, TechCrunch, The Verge, Hacker News, Ars Technica |
-| **AI** | Wired AI, TechCrunch AI, The Verge AI |
-| **Finance** | CNBC, Yahoo Finance, Fox Business, Investing.com, MarketWatch |
-| **World News** | NPR, Reuters, The Guardian, BBC |
-| **Business** | CNBC, Washington Post, Fox Business, BBC Business |
-| **Stock Market** | Yahoo Finance, CNBC, MarketWatch, Investing.com |
+| **Tech** | TechCrunch, The Verge, Hacker News, Ars Technica, Wired |
+| **AI** | TechCrunch AI, The Verge AI, Wired AI |
+| **Finance** | Yahoo Finance, Fox Business, Investing.com, MarketWatch, CNBC |
+| **World News** | Reuters, The Guardian, NPR, BBC |
+| **Business** | Washington Post, Fox Business, CNBC, BBC Business |
+| **Stock Market** | Yahoo Finance, MarketWatch, Investing.com, CNBC |
 | **Crypto** | CoinTelegraph, CoinDesk, Decrypt |
 
 For each feed entry, `newspaper3k` downloads and parses the full article HTML into clean text (capped at 2,000 chars per article to stay within LLM context limits).

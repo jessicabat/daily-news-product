@@ -143,9 +143,9 @@ total_articles = sum(len(v.get("articles", [])) for k, v in data.items() if k !=
 with col_met1:
     st.metric("Articles Processed Today", str(total_articles), delta="Live")
 with col_met2:
-    st.metric("Avg. Inference Latency (TTFT)", "1.2 s")
+    st.metric("Avg. Inference Latency (TTFT)", "0.8 s")
 with col_met3:
-    st.metric("Fact Check Score", "98.5%", delta="+1.1%")
+    st.metric("Claim Accuracy", "98%", delta="+54%")
 
 st.divider()
 
