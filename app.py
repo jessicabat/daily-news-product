@@ -12,7 +12,7 @@ if "GROQ_API_KEY" not in st.secrets:
 
 # ─── 1. Page Configuration & CSS (No Sidebar) ────────────────────────────────
 st.set_page_config(
-    page_title="MarketMind | Daily Digest",
+    page_title="Market Digest | Daily Digest",
     page_icon="📰",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -135,7 +135,7 @@ else:
 col_title, col_met1, col_met2, col_met3 = st.columns([3, 1, 1, 1])
 
 with col_title:
-    st.markdown("### 🧠 MarketMind")
+    st.markdown("### 🧠 Market Digest")
     st.caption(f"Your AI-powered daily news digest — 🗓️ {digest_date}")
 
 total_articles = sum(len(v.get("articles", [])) for k, v in data.items() if k != "_meta")
@@ -153,7 +153,7 @@ st.divider()
 if st.session_state.current_topic is None:
     st.markdown("## Welcome to your Daily Briefing.")
     st.markdown("#### ⚡ Quick Start")
-    st.info("Choose a topic below. MarketMind will instantly read today's top articles, summarize the market implications, and allow you to chat directly with the news.")
+    st.info("Choose a topic below. Market Digest will instantly read today's top articles, summarize the market implications, and allow you to chat directly with the news.")
     
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -265,7 +265,7 @@ else:
             st.markdown(prompt)
 
         system_prompt = (
-            "You are MarketMind, an expert news analyst. "
+            "You are Market Digest, an expert news analyst. "
             "Answer the user's question based ONLY on the following news context. "
             "If the answer is not in the context, say so honestly.\n\n"
             "--- NEWS CONTEXT ---\n"
