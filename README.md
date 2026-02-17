@@ -1,4 +1,4 @@
-# 🧠 MarketMind — Automated Economic Intelligence
+# 🧠 Market Digest — Automated Economic Intelligence
 
 > Most LLM summaries hallucinate. This one doesn't. An end-to-end AI news pipeline that scrapes 18 global sources, generates executive summaries at 98% claim accuracy through negative-constraint prompt engineering with Llama 3.3 70B, and delivers them in a streaming interface with per-topic RAG chat — fully automated, every morning, in under a minute.
 
